@@ -166,6 +166,5 @@ mvn test
 
 ---
 
-## 7. Tài Liệu Bổ Sung
-* **Đặc tả dự án theo chuẩn SDD**: Xem file [`PRD.md`](./PRD.md)
-* **Kịch bản thuyết trình & trả lời phản biện (5 phút live demo)**: Được lưu trong tài liệu hướng dẫn nội bộ.
+## 7. Tài Liệu Kỹ Thuật
+* **Đặc tả dự án theo chuẩn Spec-Driven Development**: Xem chi tiết tại [`PRD.md`](./PRD.md)
