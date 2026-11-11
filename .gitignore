@@ -1,0 +1,30 @@
+# Maven build output
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Node & Playwright
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# IDE & Editor
+.idea/
+*.iml
+.vscode/
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+
+# OS specific
+Thumbs.db
+.DS_Store
+*.log
+

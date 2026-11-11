@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RabbitMQ Microservices - Zero Bottleneck & High Reliability</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                        },
+                        rabbitmq: '#FF6600',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 1); }
+
+        /* Glowing animation effects */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.45); }
+        }
+        .glow-active { animation: pulse-glow 2s infinite ease-in-out; }
+
+        @keyframes flow-dash {
+            to { stroke-dashoffset: -20; }
+        }
+        .flow-animated { stroke-dasharray: 6 4; animation: flow-dash 1s linear infinite; }
+    </style>
+</head>
+<body class="bg-[#0b0f19] text-slate-100 font-sans antialiased min-h-screen selection:bg-orange-500/30 selection:text-orange-200">
+
+    <!-- Top Glow Gradient Line -->
+    <div class="h-1 w-full bg-gradient-to-r from-blue-500 via-orange-500 to-emerald-500"></div>
+
+    <!-- Navigation Header -->
+    <header class="border-b border-slate-800/80 bg-[#0d1424]/90 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20 text-white font-black text-xl">
+                    🐰
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2.5">
+                        <h1 class="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                            RabbitMQ Microservices Demo
+                            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 font-semibold">Spec-Driven AI</span>
+                        </h1>
+                    </div>
+                    <p class="text-xs text-slate-400 hidden sm:block">Kiến trúc Zero Bottleneck (~15ms) & High Reliability (Manual ACK & DLQ)</p>
+                </div>
+            </div>
+
+            <!-- Header Right Controls -->
+            <div class="flex items-center space-x-3">
+                <a href="http://localhost:15672" target="_blank"
+                   class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-xs font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5 shadow-sm group">
+                    <span class="w-2 h-2 rounded-full bg-orange-400 group-hover:animate-ping"></span>
+                    <span>RabbitMQ UI :15672</span>
+                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+                <div class="hidden md:flex items-center space-x-2 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-mono font-medium">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>Broker: AMQP 5672 Live</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Main Interaction Grid: Form & Logs -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Left Column: Order Form (5 cols) -->
+            <section class="lg:col-span-5 bg-[#11192d]/90 border border-slate-800/90 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <span>🛒 Giả Lập Đặt Hàng Trực Tuyến</span>
+                        </h2>
+                        <p class="text-xs text-slate-400">Kiểm chứng tải tức thì không nghẽn luồng</p>
+                    </div>
+                    <!-- Quick Presets -->
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="setPreset('standard')"
+                                class="px-2.5 py-1 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition" title="Đặt đơn hàng chuẩn">
+                            Đơn Chuẩn
+                        </button>
+                        <button type="button" onclick="setPreset('inventory-error')"
+                                class="px-2.5 py-1 text-[11px] font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded border border-rose-500/30 transition" title="Lỗi kho (Trừ kho thất bại)">
+                            Đơn Lỗi Kho
+                        </button>
+                    </div>
+                </div>
+
+                <form id="orderForm" class="space-y-3.5" onsubmit="submitOrder(event, false)">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Tên khách hàng</label>
+                        <input type="text" id="customerName" required placeholder="Nhập tên khách hàng (vd: Võ Quang Trung)"
+                               class="w-full bg-[#0a0e1a] border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Email người nhận</label>
+                        <input type="email" id="email" required placeholder="Nhập email (vd: trungvq@fpt.edu.vn)"
+                               class="w-full bg-[#0a0e1a] border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Tên sản phẩm</label>
+                        <input type="text" id="productName" required placeholder="Nhập tên sản phẩm (vd: MacBook Pro M3 Max)"
+                               class="w-full bg-[#0a0e1a] border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Số lượng</label>
+                            <input type="number" id="quantity" required placeholder="1"
+                                   class="w-full bg-[#0a0e1a] border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Đơn giá ($)</label>
+                            <input type="number" id="amount" step="0.1" required placeholder="3500.0"
+                                   class="w-full bg-[#0a0e1a] border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-2 space-y-2.5">
+                        <button type="submit" id="btnSubmitOrder"
+                                class="w-full py-2.5 px-4 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition duration-150 shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2">
+                            <span>⚡ Đặt hàng ngay (Zero Bottleneck)</span>
+                        </button>
+
+                        <button type="button" id="btnSimulateError" onclick="submitSimulatedError()"
+                                class="w-full py-2 px-3 rounded-lg text-xs font-medium text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition flex items-center justify-center gap-1.5">
+                            <span>⚠️ Giả lập Lỗi Kho (Kích hoạt DLQ)</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Live Response Card -->
+                <div id="responseCard" class="mt-4 pt-3.5 border-t border-slate-800/80">
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="text-slate-400 font-medium">Trạng thái API:</span>
+                        <span id="responseStatus" class="font-mono font-bold text-slate-500 px-2 py-0.5 rounded bg-slate-800/50">Chưa có yêu cầu</span>
+                    </div>
+                    <div id="responseDetails" class="text-xs text-slate-400 font-mono hidden truncate bg-[#0a0e1a] p-2.5 rounded-lg border border-slate-800">
+                        <div class="flex items-center justify-between">
+                            <span>Mã đơn: <b id="orderIdDisplay" class="text-amber-400">---</b></span>
+                            <span>Độ trễ: <b id="latencyDisplay" class="text-emerald-400">0ms</b></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Realtime Consumer Logs Console (7 cols) -->
+            <section class="lg:col-span-7 bg-[#11192d]/90 border border-slate-800/90 rounded-2xl p-5 shadow-xl flex flex-col h-[560px]">
+                <!-- Console Header -->
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="flex space-x-1.5">
+                            <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+                        </div>
+                        <h2 class="text-sm font-bold text-white tracking-wide ml-1">Realtime Consumer Logs Console</h2>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">Auto-refresh 800ms</span>
+                        <button onclick="copyLogs()" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition" title="Sao chép toàn bộ log">
+                            Copy
+                        </button>
+                        <button onclick="clearLogs()" id="btnClearLogs" class="px-2.5 py-1 text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded border border-rose-500/30 transition">
+                            Xóa log
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Console Window Body -->
+                <div id="consumerLogs" class="flex-1 bg-[#070a12] border border-slate-800/80 rounded-xl p-3.5 overflow-y-auto font-mono text-xs space-y-1.5 leading-relaxed selection:bg-slate-700">
+                    <div class="text-slate-500 italic flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
+                        Hệ thống sẵn sàng. Nhấn "Đặt hàng ngay" hoặc "Giả lập lỗi Kho" để theo dõi luồng tin nhắn...
+                    </div>
+                </div>
+
+                <!-- Console Footer Indicators -->
+                <div class="pt-3 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span> Producer</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Email ACK</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400"></span> Kho ACK</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-400"></span> DLQ Guard</span>
+                    </div>
+                    <span id="logCount" class="text-slate-500">0 dòng log</span>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        function setPreset(type) {
+            if (type === 'standard') {
+                document.getElementById('customerName').value = 'Võ Quang Trung';
+                document.getElementById('email').value = 'trungvq@fpt.edu.vn';
+                document.getElementById('productName').value = 'MacBook Pro M3 Max';
+                document.getElementById('quantity').value = '1';
+                document.getElementById('amount').value = '3500.0';
+            } else if (type === 'inventory-error') {
+                document.getElementById('customerName').value = 'Võ Quang Trung (Test Lỗi Kho)';
+                document.getElementById('email').value = 'trungvq@fpt.edu.vn';
+                document.getElementById('productName').value = 'MacBook Pro ERROR (Hỏng Kho)';
+                document.getElementById('quantity').value = '-1';
+                document.getElementById('amount').value = '3500.0';
+            }
+        }
+
+        async function submitOrder(e, isError) {
+            if (e) e.preventDefault();
+
+            const payload = {
+                customerName: document.getElementById('customerName').value,
+                email: document.getElementById('email').value,
+                productName: document.getElementById('productName').value,
+                quantity: parseInt(document.getElementById('quantity').value) || 1,
+                amount: parseFloat(document.getElementById('amount').value) || 0.0
+            };
+
+            const statusBadge = document.getElementById('responseStatus');
+            const details = document.getElementById('responseDetails');
+            const orderIdDisplay = document.getElementById('orderIdDisplay');
+            const latencyDisplay = document.getElementById('latencyDisplay');
+
+            try {
+                const startTime = performance.now();
+                const res = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const elapsed = Math.round(performance.now() - startTime);
+                const data = await res.json();
+
+                if (res.status === 202) {
+                    const lat = data.latencyMs || elapsed;
+                    statusBadge.textContent = `HTTP 202 Accepted (${lat}ms)`;
+                    statusBadge.className = 'font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/30';
+                    orderIdDisplay.textContent = data.orderId;
+                    latencyDisplay.textContent = `${lat}ms`;
+                    details.classList.remove('hidden');
+                } else {
+                    statusBadge.textContent = `HTTP ${res.status} Error`;
+                    statusBadge.className = 'font-mono font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-md border border-rose-500/30';
+                }
+            } catch (err) {
+                statusBadge.textContent = 'Lỗi kết nối';
+                statusBadge.className = 'font-mono font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-md';
+            }
+
+            fetchLogs();
+        }
+
+        function submitSimulatedError() {
+            setPreset('inventory-error');
+            submitOrder(null, true);
+        }
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch('/api/orders/logs');
+                if (!res.ok) return;
+                const logs = await res.json();
+                const container = document.getElementById('consumerLogs');
+                document.getElementById('logCount').textContent = `${logs.length} dòng log`;
+
+                if (logs.length === 0) {
+                    container.innerHTML = '<div class="text-slate-500 italic flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-slate-500"></span> Chưa có log sự kiện nào...</div>';
+                    return;
+                }
+
+                container.innerHTML = logs.map(line => {
+                    let color = 'text-slate-300';
+                    let badge = '';
+
+                    if (line.includes('[PRODUCER]')) {
+                        color = 'text-blue-300';
+                        badge = '<span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-300 mr-1.5 font-bold">PRODUCER</span>';
+                    } else if (line.includes('[EMAIL-CONSUMER]')) {
+                        if (line.includes('order.dlq') || line.includes('NACK')) {
+                            color = 'text-rose-300 bg-rose-500/10';
+                            badge = '<span class="px-1.5 py-0.5 rounded text-[10px] bg-rose-500/30 text-rose-300 mr-1.5 font-bold">EMAIL-DLQ</span>';
+                        } else {
+                            color = 'text-emerald-300';
+                            badge = '<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 mr-1.5 font-bold">EMAIL-ACK</span>';
+                        }
+                    } else if (line.includes('[INVENTORY-CONSUMER]')) {
+                        if (line.includes('order.dlq') || line.includes('NACK')) {
+                            color = 'text-rose-300 bg-rose-500/10 font-medium';
+                            badge = '<span class="px-1.5 py-0.5 rounded text-[10px] bg-rose-500/30 text-rose-300 mr-1.5 font-bold animate-pulse">INVENTORY-DLQ</span>';
+                        } else {
+                            color = 'text-purple-300';
+                            badge = '<span class="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-300 mr-1.5 font-bold">INVENTORY-ACK</span>';
+                        }
+                    }
+
+                    return `<div class="${color} hover:bg-slate-800/60 px-2 py-1 rounded transition flex items-start">${badge}<span>${escapeHtml(line)}</span></div>`;
+                }).join('');
+
+                container.scrollTop = container.scrollHeight;
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function clearLogs() {
+            await fetch('/api/orders/logs', { method: 'DELETE' });
+            fetchLogs();
+        }
+
+        function copyLogs() {
+            const container = document.getElementById('consumerLogs');
+            navigator.clipboard.writeText(container.innerText);
+            alert('Đã sao chép toàn bộ logs vào clipboard!');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // Tự động làm mới log mỗi 800ms
+        setInterval(fetchLogs, 800);
+        fetchLogs();
+    </script>
+</body>
+</html>

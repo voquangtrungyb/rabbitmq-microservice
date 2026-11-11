@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: rabbitmq-microservice-demo
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        # Chế độ xác nhận thủ công (Manual ACK) để kiểm soát độ tin cậy tuyệt đối
+        acknowledge-mode: manual
+        concurrency: 1
+        max-concurrency: 5
+
